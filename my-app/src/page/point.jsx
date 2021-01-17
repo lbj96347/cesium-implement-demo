@@ -7,12 +7,13 @@ Cesium.Ion.defaultAccessToken='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3
 
 async function loadModel(viewer , positionProperty ,start , stop) {
     // Load the glTF model from Cesium ion.
-    const dataPoint = { longitude: -122.38985, latitude: 37.61864, height: -10.3 };
+    const dataPoint = { longitude: -74.015, latitude: 40.72, height: 750 };//
     const airplaneUri = await Cesium.IonResource.fromAssetId('185430');
     const airplaneEntity = viewer.entities.add({
         description: `First data point at (${dataPoint.longitude}, ${dataPoint.latitude})`,
         position: Cesium.Cartesian3.fromDegrees(dataPoint.longitude, dataPoint.latitude, dataPoint.height),
         model: { uri: airplaneUri },
+		
         // point: { pixelSize: 10, color: Cesium.Color.RED }
     });
     viewer.flyTo(airplaneEntity);
@@ -27,6 +28,7 @@ function App() {
             const viewer = new Cesium.Viewer(cesiumContainer2.current, {
                 terrainProvider: Cesium.createWorldTerrain()
             });
+			viewer.scene.primitives.add(Cesium.createOsmBuildings());
             const osmBuildings = viewer.scene.primitives.add(Cesium.createOsmBuildings());
             viewer.camera.flyTo({
                 destination: Cesium.Cartesian3.fromDegrees(-122.384, 37.62, 4000)

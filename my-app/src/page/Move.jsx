@@ -7,6 +7,7 @@ Cesium.Ion.defaultAccessToken='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3
 
 async function loadModel(viewer , positionProperty ,start , stop) {
     // Load the glTF model from Cesium ion.
+	
     const airplaneUri = await Cesium.IonResource.fromAssetId('185333');
     const airplaneEntity = viewer.entities.add({
         availability: new Cesium.TimeIntervalCollection([ new Cesium.TimeInterval({ start: start, stop: stop }) ]),
@@ -14,10 +15,16 @@ async function loadModel(viewer , positionProperty ,start , stop) {
         // Attach the 3D model instead of the green point.
         model: { uri: airplaneUri },
         // Automatically compute the orientation from the position.
-        orientation: new Cesium.VelocityOrientationProperty(positionProperty),
+        // orientation: new Cesium.VelocityOrientationProperty(positionProperty),
         path: new Cesium.PathGraphics({ width: 3 })
+		
+		
     });
-
+	//样条插值的使用
+	airplaneEntity.position.setInterpolationOptions({
+	interpolationDegree : 2,
+	interpolationAlgorithm : Cesium.HermitePolynomialApproximation
+	});
     viewer.trackedEntity = airplaneEntity;
 }
 
@@ -26,36 +33,68 @@ function Index() {
     useEffect(() => {
         if(cesiumContainer.current){
             // STEP 4 CODE (replaces steps 2 and 3)
-// Keep your `Cesium.Ion.defaultAccessToken = 'your_token_here'` line from before here.
+			// Keep your `Cesium.Ion.defaultAccessToken = 'your_token_here'` line from before here.
             const viewer = new Cesium.Viewer(cesiumContainer.current, {
                 terrainProvider: Cesium.createWorldTerrain()
             });
             const osmBuildings = viewer.scene.primitives.add(Cesium.createOsmBuildings());
 
-            const flightData = [{longitude:113.821705,latitude:22.638172,height:10000},{longitude:113.928032,latitude:22.309817,height:1000}];
-
-            /* Initialize the viewer clock:
-              Assume the radar samples are 30 seconds apart, and calculate the entire flight duration based on that assumption.
-              Get the start and stop date times of the flight, where the start is the known flight departure time (converted from PST
-                to UTC) and the stop is the start plus the calculated duration. (Note that Cesium uses Julian dates. See
-                https://simple.wikipedia.org/wiki/Julian_day.)
-              Initialize the viewer's clock by setting its start and stop to the flight start and stop times we just calculated.
-              Also, set the viewer's current time to the start time and take the user to that time.
-            */
+            //飞行轨迹为8个点的情况
+			const flightData = [
+				{longitude:-74.0145,latitude:40.7135,height:400},
+				{longitude:-74.0145,latitude:40.7125,height:400},
+				{longitude:-74.014,latitude:40.712,height:400},
+				{longitude:-74.013,latitude:40.712,height:400},
+				{longitude:-74.0125,latitude:40.7125,height:400},
+				{longitude:-74.0125,latitude:40.7135,height:400},
+				{longitude:-74.013,latitude:40.714,height:400},
+				{longitude:-74.014,latitude:40.714,height:400},
+				{longitude:-74.0145,latitude:40.7135,height:400}
+				];
+			
+				//飞行轨迹为16点的情况
+			// const flightData = [
+			// 	{longitude:-74.019,latitude:40.7,height:400},
+			// 	{longitude:-74.0188,latitude:40.6997,height:400},
+			// 	{longitude:-74.0186,latitude:40.6994,height:400},
+			// 	{longitude:-74.0183,latitude:40.6992,height:400},
+			// 	{longitude:-74.018,latitude:40.699,height:400},
+			// 	{longitude:-74.0177,latitude:40.6992,height:400},
+			// 	{longitude:-74.0174,latitude:40.6994,height:400},
+			// 	{longitude:-74.0172,latitude:40.6997,height:400},
+			// 	{longitude:-74.017,latitude:40.7,height:400},
+			// 	{longitude:-74.0172,latitude:40.7003,height:400},
+			// 	{longitude:-74.0174,latitude:40.7006,height:400},
+			// 	{longitude:-74.0177,latitude:40.7008,height:400},
+			// 	{longitude:-74.018,latitude:40.701,height:400},
+			// 	{longitude:-74.0183,latitude:40.7008,height:400},
+			// 	{longitude:-74.0186,latitude:40.7006,height:400},
+			// 	{longitude:-74.0188,latitude:40.7003,height:400},
+			// 	{longitude:-74.019,latitude:40.7,height:400}
+			// 	];
+			//飞行轨迹4点形成原型
+			// const flightData = [
+			// 	{longitude:-74.019,latitude:40.7,height:400},
+			// 	{longitude:-74.018,latitude:40.699,height:400},
+			// 	{longitude:-74.017,latitude:40.7,height:400},
+			// 	{longitude:-74.018,latitude:40.701,height:400},
+			// 	{longitude:-74.019,latitude:40.7,height:400}
+			// 	];
+            
             const timeStepInSeconds = 1*60*60;
             const totalSeconds = timeStepInSeconds * (flightData.length - 1);
-            const start = Cesium.JulianDate.fromIso8601("2020-03-09T23:10:00Z");
+            const start = Cesium.JulianDate.fromIso8601("2021-01-16T23:00:00Z");
             const stop = Cesium.JulianDate.addSeconds(start, totalSeconds, new Cesium.JulianDate());
             viewer.clock.startTime = start.clone();
             viewer.clock.stopTime = stop.clone();
             viewer.clock.currentTime = start.clone();
             viewer.timeline.zoomTo(start, stop);
-// Speed up the playback speed 50x.
-            viewer.clock.multiplier = 50;
-// Start playing the scene.
+			// Speed up the playback speed 150x.
+            viewer.clock.multiplier = 150;
+			// Start playing the scene.
             viewer.clock.shouldAnimate = true;
 
-// The SampledPositionedProperty stores the position and timestamp for each sample along the radar sample series.
+			// The SampledPositionedProperty stores the position and timestamp for each sample along the radar sample series.
             const positionProperty = new Cesium.SampledPositionProperty();
 
             for (let i = 0; i < flightData.length; i++) {
@@ -71,7 +110,16 @@ function Index() {
                 viewer.entities.add({
                     description: `Location: (${dataPoint.longitude}, ${dataPoint.latitude}, ${dataPoint.height})`,
                     position: position,
-                    point: { pixelSize: 10, color: Cesium.Color.RED }
+                    point: { pixelSize: 5, color: Cesium.Color.white,scale:0.5 },
+					//调转机头
+					orientation: Cesium.Transforms.headingPitchRollQuaternion(
+						position,
+						new Cesium.HeadingPitchRoll(
+							Cesium.Math.toRadians(0),
+							Cesium.Math.toRadians(0),
+							Cesium.Math.toRadians(90 + i*45)
+						)
+					),
                 });
             }
 
